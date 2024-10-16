@@ -1,46 +1,49 @@
 import pandas as pd
 import numpy as np
 
-# Leggi il file CSV
+import pandas as pd
+import numpy as np
+
+# Read the CSV file
 df = pd.read_csv('hbar.csv')
 
-# Assicurati che i dati siano ordinati dal meno recente al più recente
+# Ensure the data is sorted from the least recent to the most recent
 df = df.sort_index(ascending=True)
 
-# Calcola la volatilità a 30, 60, 90 giorni
+# Calculate the 30, 60, and 90-day volatility
 def normalized_volatility(prices, window):
     prices = pd.DataFrame({'Prices': prices[:,0]})
 
     log_returns = np.log(prices / prices.shift(1))
     volatility = log_returns.rolling(window=window).std()
-    return volatility.iloc[-1]  # Ottieni l'ultimo valore, corrispondente alla finestra più recente
+    return volatility.iloc[-1]  # Get the most recent value corresponding to the latest window
 
 def parkinson_volatility_mean(prices, window=360):
-    # Assicurati che l'array abbia dimensione corretta e converti in array 1D
+    # Ensure the array has the correct shape and convert to 1D array
     if prices.ndim != 2 or prices.shape[1] != 1:
-        raise ValueError("L'array di input deve avere dimensioni (365, 1)")
+        raise ValueError("The input array must have dimensions (365, 1)")
     
-    # Rimuovi la seconda dimensione per ottenere un array unidimensionale
+    # Remove the second dimension to obtain a one-dimensional array
     prices = prices.flatten()
     
-    # Converti il numpy array in una pandas Series per poter usare la funzione rolling
+    # Convert the numpy array to a pandas Series to use the rolling function
     prices_series = pd.Series(prices)
     
-    # Calcola i massimi e minimi giornalieri su una finestra di 1 giorno
+    # Calculate the daily highs and lows over a 1-day window
     high = prices_series.rolling(window=window, min_periods=1).max()
     low = prices_series.rolling(window=window, min_periods=1).min()
     #print(high, low)
     
-    # Calcola la logaritmica dei massimi e minimi
+    # Calculate the logarithm of highs and lows
     log_hl = np.log(high / low)
     
-    # Calcola il fattore di volatilità di Parkinson
+    # Compute Parkinson’s volatility factor
     parkinson_vol = (log_hl ** 2).rolling(window=window).mean() * (1 / (4 * np.log(2)))
     
-    # Prendi la radice quadrata per ottenere la deviazione standard
+    # Take the square root to obtain the standard deviation
     parkinson_vol = np.sqrt(parkinson_vol)
     
-    # Calcola la media dei valori di volatilità
+    # Calculate the mean volatility value
     parkinson_vol_mean = parkinson_vol.mean()
     
     return parkinson_vol_mean
